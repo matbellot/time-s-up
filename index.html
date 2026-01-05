@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="Gioca a Time's Up direttamente dal tuo browser! App mobile-first per giocare con gli amici.">
+    <title>Time's Up!</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Vista Configurazione -->
+        <div id="configView" class="view active">
+            <h1>⏱️ Time's Up!</h1>
+            <div class="config-form">
+                <div class="input-group">
+                    <label for="team1Name">Nome squadra 1:</label>
+                    <input type="text" id="team1Name" maxlength="20" placeholder="Squadra 1">
+                </div>
+                <div class="input-group">
+                    <label for="team2Name">Nome squadra 2:</label>
+                    <input type="text" id="team2Name" maxlength="20" placeholder="Squadra 2">
+                </div>
+                <div class="input-group">
+                    <label for="numPlayers">Numero di giocatori:</label>
+                    <input type="number" id="numPlayers" min="2" max="20" value="4">
+                </div>
+                <div class="input-group">
+                    <label for="wordsPerPlayer">Parole per giocatore:</label>
+                    <input type="number" id="wordsPerPlayer" min="1" max="50" value="5">
+                </div>
+                <div class="input-group">
+                    <label for="numRounds">Numero di round:</label>
+                    <input type="number" id="numRounds" min="1" max="10" value="3">
+                </div>
+                <div class="input-group">
+                    <label for="timer">Timer (secondi):</label>
+                    <div class="slider-container">
+                        <input type="range" id="timer" min="10" max="90" value="30" step="5">
+                        <span id="timerValue">30</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="startWordInput()">Inizia</button>
+            </div>
+        </div>
+
+        <!-- Vista Inserimento Parole -->
+        <div id="wordInputView" class="view">
+            <h2 id="currentPlayerLabel">Giocatore 1, inserisci le tue parole</h2>
+            <div class="word-input-container">
+                <input type="text" id="wordInput" placeholder="Scrivi una parola..." autocomplete="off">
+                <button class="btn btn-primary" onclick="addWord()">Aggiungi</button>
+            </div>
+            <div class="words-list">
+                <h3>Parole inserite:</h3>
+                <div id="wordsDisplay"></div>
+            </div>
+            <button class="btn btn-secondary" onclick="nextPlayer()" id="nextPlayerBtn" style="display: none;">Prossimo Giocatore</button>
+            <button class="btn btn-primary" onclick="startGame()" id="startGameBtn" style="display: none;">Inizia il Gioco</button>
+        </div>
+
+        <!-- Vista Gioco -->
+        <div id="gameView" class="view">
+            <div class="game-header">
+                <div class="round-info">
+                    <p>Round <span id="currentRound">1</span> di <span id="totalRounds">1</span></p>
+                </div>
+                <div class="team-info">
+                    <h3 id="currentTeamLabel">Squadra 1</h3>
+                </div>
+            </div>
+            <div class="timer-container">
+                <div class="timer-circle">
+                    <svg class="timer-svg" viewBox="0 0 100 100">
+                        <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
+                        <circle class="timer-progress" id="timerProgress" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="timer-text" id="timerText">30</div>
+                </div>
+            </div>
+            <div class="word-display">
+                <h2 id="currentWord" style="display: none;">Parola</h2>
+                <h2 id="prepareMessage" class="prepare-message">Preparati... Premi "Inizia Timer" quando sei pronto</h2>
+            </div>
+            <div id="startTimerBtnContainer" class="start-timer-container">
+                <button class="btn btn-primary" onclick="startRound()">▶️ Inizia Timer</button>
+            </div>
+            <div class="game-buttons" id="gameButtons" style="display: none;">
+                <button class="btn btn-success" onclick="wordGuessed()">Indovinata! ✓</button>
+                <button class="btn btn-skip" onclick="skipWord()">Salta →</button>
+            </div>
+            <div class="game-stats">
+                <p>Parole rimanenti: <span id="remainingWords">0</span></p>
+            </div>
+        </div>
+
+        <!-- Modale Cambio Turno -->
+        <div id="turnChangeModal" class="modal">
+            <div class="modal-content">
+                <h2>⏰ Tempo Scaduto!</h2>
+                <p class="modal-message">Ora tocca alla squadra dei</p>
+                <h3 id="nextTeamLabel" class="next-team-label">Squadra 2</h3>
+                <button class="btn btn-primary" onclick="closeTurnChangeModal()">Pronto!</button>
+            </div>
+        </div>
+
+        <!-- Vista Fine Round -->
+        <div id="endRoundView" class="view">
+            <h1>🎉 Round <span id="completedRound">1</span> Completato!</h1>
+            <p class="end-message">Tutte le parole sono state indovinate!</p>
+            <div class="round-scores">
+                <div class="score-summary">
+                    <h3>Punteggi Round:</h3>
+                    <div class="score-row">
+                        <span><span id="roundTeam1Name">Squadra 1</span>: <strong id="roundScoreTeam1">0</strong></span>
+                        <span><span id="roundTeam2Name">Squadra 2</span>: <strong id="roundScoreTeam2">0</strong></span>
+                    </div>
+                </div>
+                <div class="score-summary">
+                    <h3>Punteggi Totali:</h3>
+                    <div class="score-row">
+                        <span><span id="totalTeam1Name">Squadra 1</span>: <strong id="totalScoreTeam1">0</strong></span>
+                        <span><span id="totalTeam2Name">Squadra 2</span>: <strong id="totalScoreTeam2">0</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="end-buttons">
+                <button class="btn btn-primary" onclick="nextRound()" id="nextRoundBtn">Round Successivo</button>
+                <button class="btn btn-secondary" onclick="resetGame()">Nuova Partita</button>
+            </div>
+        </div>
+
+        <!-- Vista Fine Gioco -->
+        <div id="endGameView" class="view">
+            <h1>🏆 Gioco Completato!</h1>
+            <div class="round-breakdown">
+                <h2>Riepilogo Round</h2>
+                <div class="rounds-table" id="roundsTable"></div>
+            </div>
+            <div class="final-scores">
+                <div class="score-card">
+                    <h3 id="finalTeam1Title">Squadra 1</h3>
+                    <div class="score-value" id="finalScoreTeam1">0</div>
+                </div>
+                <div class="score-card">
+                    <h3 id="finalTeam2Title">Squadra 2</h3>
+                    <div class="score-value" id="finalScoreTeam2">0</div>
+                </div>
+            </div>
+            <div id="winnerMessage" class="winner-message"></div>
+            <div class="share-instruction">Condividi il risultato o fai uno screenshot!</div>
+            <div class="end-buttons">
+                <button class="btn btn-primary" onclick="showConfirmRestart()">Nuova Partita</button>
+            </div>
+        </div>
+        <!-- Modale conferma reset -->
+        <div class="modal" id="confirmRestartModal">
+            <div class="modal-content">
+                <h2>Vuoi davvero iniziare una nuova partita?</h2>
+                <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+                  <button class="btn btn-success" onclick="confirmRestart(true)">Sì, resetta</button>
+                  <button class="btn btn-secondary" onclick="confirmRestart(false)">No, annulla</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
